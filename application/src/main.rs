@@ -2,35 +2,12 @@ use std::env::args;
 
 mod instruction;
 mod file_reader;
+mod cpu;
 
 #[derive(Debug)]
 enum MainError {
     NoArgumentError,
     NoFileFoundOnPathError,
-}
-
-struct Cpu {
-    regs: [u64; 64],
-    pc: u64,
-    memory: Vec<u8>,
-}
-
-impl Cpu {
-    fn fetch(&self) -> u32 {
-        todo!()
-    }
-
-    fn decode(instr: u32) -> instruction::Instruction {
-        todo!()
-    }
-
-    fn execute(&mut self, instr: instruction::Instruction) {
-        todo!()
-    }
-
-    fn run(&mut self) {
-        todo!()
-    }
 }
 
 fn main() -> Result<(), MainError> {
@@ -40,7 +17,7 @@ fn main() -> Result<(), MainError> {
         return Err(MainError::NoArgumentError);
     }
 
-    let cpu: Cpu = Cpu {
+    let cpu = cpu::Cpu {
         regs: [0; 64],
         pc: 0,
         memory: {
@@ -52,6 +29,7 @@ fn main() -> Result<(), MainError> {
     };
 
 
+    //Just for testing
     println!("{:?}", cpu.memory);
 
     Ok(())

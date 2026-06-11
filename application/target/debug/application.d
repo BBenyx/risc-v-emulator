@@ -1,1 +1,1 @@
-/data/rustProgramming/riscV/risc-v-emulator/application/target/debug/application: /data/rustProgramming/riscV/risc-v-emulator/application/src/main.rs
+/data/rustProgramming/riscV/risc-v-emulator/application/target/debug/application: /data/rustProgramming/riscV/risc-v-emulator/application/src/file_reader.rs /data/rustProgramming/riscV/risc-v-emulator/application/src/instruction.rs /data/rustProgramming/riscV/risc-v-emulator/application/src/main.rs
