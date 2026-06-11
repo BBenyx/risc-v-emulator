@@ -1,12 +1,12 @@
-use std::fs;
 use std::env::args;
+use std::fs;
 
 #[derive(Debug)]
 enum MainError {
     NoArgumentError,
     NoFileFoundOnPathError,
-
 }
+
 struct Cpu {
     regs: [u64; 64],
     pc: u64,
@@ -14,7 +14,6 @@ struct Cpu {
 }
 
 impl Cpu {
-
     fn fetch(&self) -> u32 {
         todo!()
     }
@@ -29,8 +28,7 @@ impl Cpu {
 
     fn run(&mut self) {
         todo!()
-    }*/  
-
+    }*/
 }
 
 fn main() -> Result<(), MainError> {
@@ -40,34 +38,38 @@ fn main() -> Result<(), MainError> {
         return Err(MainError::NoArgumentError);
     }
 
-    let bits = match read_file_bits(&args[1]) {
-        Some(v) => v,
-        None => return Err(MainError::NoFileFoundOnPathError)
+    let cpu: Cpu = Cpu {
+        regs: [0; 64],
+        pc: 0,
+        memory: {
+            match read_file_bits(&args[1]) {
+                Some(v) => v,
+                None => return Err(MainError::NoFileFoundOnPathError),
+            }
+        },
     };
 
-    println!("{:?}", bits);
+
+    println!("{:?}", cpu.memory);
 
     Ok(())
 }
 
 fn read_file_bits(path: &str) -> Option<Vec<u8>> {
-    
-    let bytes = fs::read(path);
+    let bytes = fs::read(path).ok()?;
+    let mut bits: Vec<u8> = Vec::new();
 
-    match bytes {
-        Ok(value) => {
+    for chunk in bytes.chunks(4) {
+        if chunk.len() > 4 { break; }
 
-            let mut bits: Vec<u8> = Vec::new();
-            for elem in value {
+        let value = u32::from_le_bytes([
+            chunk[0], chunk[1], chunk[2], chunk[3]
+        ]);
 
-                for i in (0..8).rev() {
-
-                    // Always shifting the bits to the right and reading the last element
-                    bits.push((elem >> i) & 1);
-                }
-            }
-            Some(bits)
-        },
-        Err(_) => None,
+        for i in (0..32).rev() {
+            bits.push(((value >> i) & 1) as u8);
+        }
     }
+    
+    Some(bits)
 }
