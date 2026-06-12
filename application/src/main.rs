@@ -17,8 +17,8 @@ fn main() -> Result<(), MainError> {
         return Err(MainError::NoArgumentError);
     }
 
-    let cpu = cpu::Cpu {
-        regs: [0; 64],
+    let mut cpu = cpu::Cpu {
+        regs: [0; 32],
         pc: 0,
         memory: {
             match file_reader::read_file_bits(&args[1]) {
@@ -28,9 +28,7 @@ fn main() -> Result<(), MainError> {
         },
     };
 
-
-    //Just for testing
-    println!("{:?}", cpu.memory);
+    cpu.run();
 
     Ok(())
 }

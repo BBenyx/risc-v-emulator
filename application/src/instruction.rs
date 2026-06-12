@@ -1,4 +1,4 @@
-
+#[derive(Debug)]
 pub enum Instruction {
     RType(RTypeInstr),
     IType(ITypeInstr),
@@ -8,7 +8,7 @@ pub enum Instruction {
     JType(JTypeInstr),
 }
 
-
+#[derive(Debug)]
 pub struct RTypeInstr {
     opcode: u8,
     rd: u8,
@@ -19,142 +19,116 @@ pub struct RTypeInstr {
 }
 
 impl RTypeInstr {
-    pub fn parse(instr: &[u8]) -> Self {
+    pub fn parse(instr: u32) -> Self {
         Self {
-            opcode: u8_from_bits(&instr[0..6]),
-            rd: u8_from_bits(&instr[7..11]),
-            funct3: u8_from_bits(&instr[12..14]),
-            rs1: u8_from_bits(&instr[15..19]),
-            rs2: u8_from_bits(&instr[20..24]),
-            funct7: u8_from_bits(&instr[25..31]),
+            opcode: (instr & 0x7f) as u8,
+            rd: ((instr >> 7) & 0x1f) as u8,
+            funct3: ((instr >> 12) & 0x7) as u8,
+            rs1: ((instr >> 15) & 0x1f) as u8,
+            rs2: ((instr >> 20) & 0x1f) as u8,
+            funct7: ((instr >> 25) & 0x7f) as u8,
         }
     }
 }
 
-
+#[derive(Debug)]
 pub struct ITypeInstr {
     opcode: u8,
     rd: u8,
     rs1: u8,
     funct3: u8,
-    imm: u8,
+    imm: i32,
 }
 
 impl ITypeInstr {
-    pub fn parse(instr: &[u8]) -> Self {
+    pub fn parse(instr: u32) -> Self {
         Self {
-            opcode: u8_from_bits(&instr[0..6]),
-            rd: u8_from_bits(&instr[7..11]),
-            funct3: u8_from_bits(&instr[12..14]),
-            rs1: u8_from_bits(&instr[15..19]),
-            imm: u8_from_bits(&instr[20..31]),
+            opcode: (instr & 0x7f) as u8,
+            rd: ((instr >> 7) & 0x1f) as u8,
+            funct3: ((instr >> 12) & 0x7) as u8,
+            rs1: ((instr >> 15) & 0x1f) as u8,
+            imm: ((instr >> 20) & 0x3ff) as i32,
         }
     }
 }
 
-
+#[derive(Debug)]
 pub struct STypeInstr {
-    opcode: u8,
     rs1: u8,
     rs2: u8,
     funct3: u8,
-    imm: u8,
+    imm: i32,
 }
 
 impl STypeInstr {
-    pub fn parse(instr: &[u8]) -> Self {
-        let mut imm_vec: Vec<u8> = Vec::new();
-        imm_vec.extend_from_slice(&instr[7..11]);
-        imm_vec.extend_from_slice(&instr[25..31]);
+    pub fn parse(instr: u32) -> Self {
+        let imm_4_0 = (instr >> 7) & 0x1f;
+        let imm_11_5 = (instr >> 25) & 0x7f;
 
         Self {
-            opcode: u8_from_bits(&instr[0..6]),
-            imm: u8_from_bits(&imm_vec),
-            funct3: u8_from_bits(&instr[12..14]),
-            rs1: u8_from_bits(&instr[15..19]),
-            rs2: u8_from_bits(&instr[20..24]),
+            imm: ((imm_11_5 << 5) | imm_4_0) as i32,
+            funct3: ((instr >> 12) & 0x7) as u8,
+            rs1: ((instr >> 15) & 0x1f) as u8,
+            rs2: ((instr >> 20) & 0x1f) as u8,
         }
     }
 }
 
-
+#[derive(Debug)]
 pub struct BTypeInstr {
-    opcode: u8,
     rs1: u8,
     rs2: u8,
     funct3: u8,
-    imm: u8,
+    imm: i32,
 }
 
 impl BTypeInstr {
-    pub fn parse(instr: &[u8]) -> Self {
-        let mut imm_vec: Vec<u8> = Vec::new();
-        imm_vec.extend_from_slice(&instr[8..11]);
-        imm_vec.extend_from_slice(&instr[25..30]);
-        imm_vec.push(instr[7]);
-        imm_vec.push(instr[31]);
-
+    pub fn parse(instr: u32) -> Self {
+        let imm_4_1 = (instr >> 8) & 0xf;
+        let imm_10_5 = (instr >> 25) & 0x3f;
+        let imm_11 = (instr >> 7) & 0x1;
+        let imm_12 = (instr >> 31) & 0x1;
 
         Self {
-            opcode: u8_from_bits(&instr[0..6]),
-            imm: u8_from_bits(&imm_vec),
-            funct3: u8_from_bits(&instr[12..14]),
-            rs1: u8_from_bits(&instr[15..19]),
-            rs2: u8_from_bits(&instr[20..24]),
+            imm: ((imm_12 << 12) | (imm_11 << 11) | (imm_10_5 << 5) | (imm_4_1 << 1)) as i32,
+            funct3: ((instr >> 12) & 0x7) as u8,
+            rs1: ((instr >> 15) & 0x1f) as u8,
+            rs2: ((instr >> 20) & 0x1f) as u8,
         }
     }
 }
 
-
+#[derive(Debug)]
 pub struct UTypeInstr {
-    opcode: u8,
     rd: u8,
-    imm: u8,
+    imm: u32,
 }
 
 impl UTypeInstr {
-    pub fn parse(instr: &[u8]) -> Self {
+    pub fn parse(instr: u32) -> Self {
         Self {
-            opcode: u8_from_bits(&instr[0..6]),
-            rd: u8_from_bits(&instr[7..11]),
-            imm: u8_from_bits(&instr[12..31]),
+            rd: ((instr >> 7) & 0x1f) as u8,
+            imm: ((instr >> 12) & 0x3ff) as u32,
         }
     }
 }
 
-
+#[derive(Debug)]
 pub struct JTypeInstr {
-    opcode: u8,
     rd: u8,
-    imm: u8,
+    imm: i32,
 }
 
 impl JTypeInstr {
-    pub fn parse(instr: &[u8]) -> Self {
-        let mut imm_vec: Vec<u8> = Vec::new();
-        imm_vec.extend_from_slice(&instr[21..30]);
-        imm_vec.push(instr[20]);
-        imm_vec.extend_from_slice(&instr[12..19]);
-        imm_vec.push(instr[31]);
-
+    pub fn parse(instr: u32) -> Self {
+        let imm_10_1 = (instr >> 21) & 0x3ff;
+        let imm_117 = (instr >> 20) & 0x1;
+        let imm_19_12 = (instr >> 12) & 0xff;
+        let imm_20 = (instr >> 31) & 0x1;
 
         Self {
-            opcode: u8_from_bits(&instr[0..6]),
-            rd: u8_from_bits(&instr[7..11]),
-            imm: u8_from_bits(&imm_vec),
+            rd: ((instr >> 7) & 0x1f) as u8,
+            imm: ((imm_20 << 20) | (imm_19_12 << 12) | (imm_117 << 11) | (imm_10_1 << 1)) as i32,
         }
     }
-}
-
-
-
-
-pub fn u8_from_bits(slice: &[u8]) -> u8 {
-    let mut value: u8 = 0;
-
-    for &bit in slice {
-        value = (value << 1) | bit;
-    }
-
-    value
 }
