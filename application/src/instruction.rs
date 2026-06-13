@@ -4,9 +4,23 @@ pub enum Instruction {
     IType(ITypeInstr),
     SType(STypeInstr),
     BType(BTypeInstr),
-    UType(UTypeInstr),
+    //UType(UTypeInstr),
     JType(JTypeInstr),
 }
+
+impl Instruction {
+    pub fn execute(&self, regs: &mut [u64; 32]) {
+        match self {
+            Instruction::RType(instr) => instr.execute(regs),
+            Instruction::IType(instr) => instr.execute(regs),
+            Instruction::SType(instr) => todo!(),
+            Instruction::BType(instr) => todo!(),
+            Instruction::JType(instr) => todo!(),
+        }
+    }
+}
+
+
 
 #[derive(Debug)]
 pub struct RTypeInstr {
@@ -29,6 +43,27 @@ impl RTypeInstr {
             funct7: ((instr >> 25) & 0x7f) as u8,
         }
     }
+
+    pub fn execute(&self, regs: &mut [u64; 32]) {
+        match self.opcode {
+            0x33 /* 32bit */=> todo!(),
+            0x3b /* 64bit */ => self.b64_operation(regs),
+            _ => panic!("Undefined I-Type opcode: {:x}", self.opcode),
+        }
+    }
+
+    fn b64_operation(&self, regs: &mut [u64; 32]) {
+        match self.funct3 {
+            0x0 => {
+                regs[self.rd as usize] =
+                    ((regs[self.rs1 as usize] as i32).
+                    wrapping_mul(regs[self.rs2 as usize] as i32)) as i64 as u64
+            },
+            _ => panic!("Undefined funct3 value: {:x}", self.funct3),
+        }
+    }
+
+
 }
 
 #[derive(Debug)]
@@ -48,6 +83,25 @@ impl ITypeInstr {
             funct3: ((instr >> 12) & 0x7) as u8,
             rs1: ((instr >> 15) & 0x1f) as u8,
             imm: ((instr >> 20) & 0x3ff) as i32,
+        }
+    }
+
+    pub fn execute(&self, regs: &mut [u64; 32]) {
+        match self.opcode {
+            0x13 /* ALU */=> self.alu_operation(regs),
+            0x03 => todo!("Load operation"),
+            _ => panic!("Undefined I-Type opcode: {:x}", self.opcode),
+        }
+    }
+
+    fn alu_operation(&self, regs: &mut [u64; 32]) {
+        match self.funct3 {
+            0x0 /* ADDI */=> {
+                regs[self.rd as usize] =
+                    (regs[self.rs1 as usize] as i64).
+                    wrapping_add(self.imm as i64) as u64   
+            },
+            _ => panic!("Undefined funct3 value: {:x}", self.funct3),
         }
     }
 }
@@ -98,6 +152,7 @@ impl BTypeInstr {
     }
 }
 
+/*
 #[derive(Debug)]
 pub struct UTypeInstr {
     rd: u8,
@@ -112,6 +167,7 @@ impl UTypeInstr {
         }
     }
 }
+*/
 
 #[derive(Debug)]
 pub struct JTypeInstr {

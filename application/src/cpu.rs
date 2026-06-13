@@ -1,4 +1,4 @@
-use crate::instruction::{self, BTypeInstr, ITypeInstr, JTypeInstr, RTypeInstr, STypeInstr};
+use crate::instruction::*;
 
 pub struct Cpu {
     pub regs: [u64; 32],
@@ -11,34 +11,34 @@ impl Cpu {
         u32_from_bits(&self.memory[self.pc..self.pc + 32])
     }
 
-    fn decode(instr: u32) -> instruction::Instruction {
+    fn decode(instr: u32) -> Instruction {
         let opcode = instr & 0x7f;
-        println!("{:x}", opcode);
 
         match opcode {
-            0x33 /* R-type 32bit*/ => instruction::Instruction::RType(RTypeInstr::parse(instr)),
-            0x3B /* R-type 64bit */ => instruction::Instruction::RType(RTypeInstr::parse(instr)),
-            0x13 /* I-type ALU */ => instruction::Instruction::IType(ITypeInstr::parse(instr)),
-            0x03 /* I-type Load */ => instruction::Instruction::IType(ITypeInstr::parse(instr)),
-            0x23 /* S-type */ => instruction::Instruction::SType(STypeInstr::parse(instr)),
-            0x63 /* B-type */ => instruction::Instruction::BType(BTypeInstr::parse(instr)),
-            0x6f /* J-type */ => instruction::Instruction::JType(JTypeInstr::parse(instr)),
+            0x33 /* R-type 32bit*/ => Instruction::RType(RTypeInstr::parse(instr)),
+            0x3b /* R-type 64bit */ => Instruction::RType(RTypeInstr::parse(instr)),
+            0x13 /* I-type ALU */ => Instruction::IType(ITypeInstr::parse(instr)),
+            0x03 /* I-type Load */ => Instruction::IType(ITypeInstr::parse(instr)),
+            0x23 /* S-type */ => Instruction::SType(STypeInstr::parse(instr)),
+            0x63 /* B-type */ => Instruction::BType(BTypeInstr::parse(instr)),
+            0x6f /* J-type */ => Instruction::JType(JTypeInstr::parse(instr)),
             // 0x37 /* U-Type */ can be implemented here
             _ => panic!("Unimplemented opcode: {opcode}"),
         }
     }
 
-    fn execute(&mut self, instr: instruction::Instruction) {
-        todo!()
+    // sziabeniszeretlek
+    fn execute(&mut self, instr: Instruction) {
+        instr.execute(&mut self.regs);
     }
 
     pub fn run(&mut self) {
-        while self.pc <= self.memory.len() {
+        while self.pc < self.memory.len() {
             let bytes = self.fetch();
 
             let decoded = Self::decode(bytes);
-            //self.execute(decoded);
-            println!("{:?}", decoded);
+            println!("{:?}", &decoded);
+            self.execute(decoded);
 
             self.pc += 32;
         }
