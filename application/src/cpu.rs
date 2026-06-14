@@ -2,7 +2,7 @@ use crate::instruction::*;
 
 pub struct Cpu {
     pub regs: [u64; 32],
-    pub pc: usize,
+    pub pc: u64,
     pub memory: Vec<u8>,
 }
 
@@ -11,7 +11,11 @@ impl Cpu {
         let mem = &self.memory;
         let pc = self.pc;
 
-        let instruction: [u8; 4] = [mem[pc], mem[pc+1], mem[pc+2], mem[pc+3]];
+        let instruction: [u8; 4] =
+        [mem[pc as usize],
+        mem[(pc+1) as usize],
+        mem[(pc+2) as usize],
+        mem[(pc+3) as usize]];
         u32::from_le_bytes(instruction)
     }
 
@@ -31,18 +35,20 @@ impl Cpu {
         }
     }
 
-    // sziabeniszeretlek
     fn execute(&mut self, instr: Instruction) {
-        instr.execute(&mut self.regs);
+        instr.execute(&mut self.regs, &mut self.pc);
     }
 
     pub fn run(&mut self) {
-        while self.pc < self.memory.len() {
+        while (self.pc as usize) < self.memory.len() {
             let bytes = self.fetch();
 
             let decoded = Self::decode(bytes);
-            println!("{:?}", &decoded);
+            //println!("{:?}", &decoded);
             self.execute(decoded);
+
+            //println!("PC: {}", self.pc);
+            //println!("Reg 6: {}", self.regs[6]);
 
             self.pc += 4;
         }
