@@ -8,7 +8,11 @@ pub struct Cpu {
 
 impl Cpu {
     fn fetch(&self) -> u32 {
-        u32_from_bits(&self.memory[self.pc..self.pc + 32])
+        let mem = &self.memory;
+        let pc = self.pc;
+
+        let instruction: [u8; 4] = [mem[pc], mem[pc+1], mem[pc+2], mem[pc+3]];
+        u32::from_le_bytes(instruction)
     }
 
     fn decode(instr: u32) -> Instruction {
@@ -40,12 +44,14 @@ impl Cpu {
             println!("{:?}", &decoded);
             self.execute(decoded);
 
-            self.pc += 32;
+            self.pc += 4;
         }
 
         println!("Registers:");
-        for (i, elem) in self.memory.iter().enumerate() {
-            println!("{i}: {elem}");
+        for i in 0..16 {
+            println!("{i1: <2}: {column1: <15}{i2: >15}: {column2}",
+            i1 = i, i2 = i+16,
+            column1 = self.regs[i], column2 = self.regs[i+16]);
         }
     }
 }
