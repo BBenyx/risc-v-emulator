@@ -1,3 +1,5 @@
+use crate::cpu::Cpu;
+
 #[derive(Debug)]
 pub enum Instruction {
     RType(RTypeInstr),
@@ -9,18 +11,20 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn execute(&self, regs: &mut [u64; 32], pc: &mut u64) {
+    pub fn execute(&self, cpu: &mut Cpu) {
         match self {
-            Instruction::RType(instr) => instr.execute(regs),
-            Instruction::IType(instr) => instr.execute(regs),
-            Instruction::SType(instr) => todo!(),
-            Instruction::BType(instr) => instr.execute(regs, pc),
-            Instruction::JType(instr) => instr.execute(regs, pc),
+            Instruction::RType(instr) => instr.execute(&mut cpu.regs),
+            Instruction::IType(instr) => instr.execute(cpu),
+            Instruction::SType(instr) => instr.execute(cpu),
+            Instruction::BType(instr) => instr.execute(&mut cpu.regs, &mut cpu.pc),
+            Instruction::JType(instr) => instr.execute(&mut cpu.regs, &mut cpu.pc),
         }
     }
 }
 
-
+//---------------------------
+//  Type implementations
+//---------------------------
 
 #[derive(Debug)]
 pub struct RTypeInstr {
@@ -77,6 +81,7 @@ impl RTypeInstr {
     }
 }
 
+
 #[derive(Debug)]
 pub struct ITypeInstr {
     opcode: u8,
@@ -99,10 +104,11 @@ impl ITypeInstr {
         }
     }
 
-    pub fn execute(&self, regs: &mut [u64; 32]) {
+    pub fn execute(&self, cpu: &mut Cpu) {
         match self.opcode {
-            0x13 /* ALU */=> self.alu_operation(regs),
-            0x03 => todo!("Load operation"),
+            0x13 /* ALU */=> self.alu_operation(&mut cpu.regs),
+            0x03 /* Load */=> self.load_operation(&mut cpu.regs, &mut cpu.memory),
+            0x67 /* Return */ => self.return_operation(&mut cpu.regs, &mut cpu.pc),
             _ => panic!("Undefined I-Type opcode: {:x}", self.opcode),
         }
     }
@@ -112,12 +118,48 @@ impl ITypeInstr {
             0x0 /* ADDI */=> {
                 regs[self.rd as usize] =
                     (regs[self.rs1 as usize]).
-                    wrapping_add(self.imm as u64)   
+                    wrapping_add_signed(self.imm as i64)
             },
             _ => panic!("Undefined funct3 value: {:x}", self.funct3),
         }
     }
+
+    fn load_operation(&self, regs: &mut [u64; 32], memory: &mut Vec<u8>) {
+        match self.funct3 {
+            0x2 /* LW */ => {
+                let addr = regs[self.rs1 as usize]
+                    .wrapping_add_signed(self.imm as i64) as usize;
+
+            let bytes =
+                [memory[addr],
+                memory[addr + 1],
+                memory[addr + 2],
+                memory[addr + 3]];
+
+            let value = i32::from_le_bytes(bytes);
+
+            regs[self.rd as usize] = value as i64 as u64;
+            },
+            _ => panic!("Undefined funct3 value: {:x}", self.funct3),
+        }
+    }
+
+    fn return_operation(&self, regs: &mut [u64; 32], pc: &mut u64) {
+        /* Jalr (ret) */
+        let return_addr = pc.wrapping_add(4);
+
+        let target = regs[self.rs1 as usize]
+            .wrapping_add(self.imm as i64 as u64)
+            & !1; // Forcing the first bit to be zero 0
+
+        if self.rd != 0 {
+            regs[self.rd as usize] = return_addr;
+        }
+
+        *pc = target;
+    }
 }
+
 
 #[derive(Debug)]
 pub struct STypeInstr {
@@ -132,16 +174,34 @@ impl STypeInstr {
         let imm_4_0 = (instr >> 7) & 0x1f;
         let imm_11_5 = (instr >> 25) & 0x7f;
 
-        let imm = ((imm_11_5 << 5) | imm_4_0) as i32;
+        let imm: i32 = ((imm_11_5 << 5) | imm_4_0) as i32;
 
         Self {
             funct3: ((instr >> 12) & 0x7) as u8,
             rs1: ((instr >> 15) & 0x1f) as u8,
             rs2: ((instr >> 20) & 0x1f) as u8,
-            imm: (imm << 20) >> 20, // Sign extend (see in sources.txt)
+            imm: (imm << 20) >> 20, // Sign extend 12-bit immediate
+        }
+    }
+
+    pub fn execute(&self, cpu: &mut Cpu) {
+        match self.funct3 {
+            0x2 /* SW */ => {
+                let base = cpu.regs[self.rs1 as usize];
+                let imm = self.imm as i64;
+
+                let addr = base.wrapping_add_signed(imm) as usize;
+
+                //println!("Addr: {:x}", addr);
+                let value = cpu.regs[self.rs2 as usize] as u32;
+
+                cpu.memory[addr..addr+4].copy_from_slice(&value.to_le_bytes());
+            },
+            _ => panic!("Undefined funct3 value: {:x}", self.funct3),
         }
     }
 }
+
 
 #[derive(Debug)]
 pub struct BTypeInstr {
@@ -183,6 +243,7 @@ impl BTypeInstr {
     }
 }
 
+
 /*
 #[derive(Debug)]
 pub struct UTypeInstr {
@@ -199,6 +260,7 @@ impl UTypeInstr {
     }
 }
 */
+
 
 #[derive(Debug)]
 pub struct JTypeInstr {
@@ -232,7 +294,7 @@ impl JTypeInstr {
         if self.rd != 0 {
             regs[self.rd as usize] = next;
         }
-        // - 4 needed beacuse the pc will be increased by 4 after the jump instruction!
+
         *pc = pc.wrapping_add_signed(self.imm as i64 - 4);
     }
 }

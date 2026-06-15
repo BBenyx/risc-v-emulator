@@ -1,1 +1,5 @@
 https://doc.rust-lang.org/std/intrinsics/fn.wrapping_add.html
+Hacker’s Delight (Henry S. Warren) page: 19 (2-6 Sign Extension)
+https://docs.riscv.org/reference/isa/_attachments/riscv-unprivileged.pdf
+Learn Rust in a Month of Lunches (David MacLeod)
+https://en.wikipedia.org/wiki/RISC-V_instruction_listings

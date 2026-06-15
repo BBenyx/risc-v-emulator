@@ -17,16 +17,11 @@ fn main() -> Result<(), MainError> {
         return Err(MainError::NoArgumentError);
     }
 
-    let mut cpu = cpu::Cpu {
-        regs: [0; 32],
-        pc: 0,
-        memory: {
-            match file_reader::read_file_bits(&args[1]) {
+    let program = match file_reader::read_file_bits(&args[1]) {
                 Some(v) => v,
-                None => return Err(MainError::NoFileFoundOnPathError),
-            }
-        },
-    };
+                None => panic!("{:?}", MainError::NoFileFoundOnPathError),
+            };
+    let mut cpu = cpu::Cpu::new(program);
 
     cpu.run();
 
